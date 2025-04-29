@@ -29,8 +29,10 @@ const SEARCH_CITIES = gql`
 function SearchHotels() {
   const [keyword, setKeyword] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
+
   const [searchHotels, { loading, data, error }] = useLazyQuery(SEARCH_HOTELS);
   const [getCities, { data: cityData }] = useLazyQuery(SEARCH_CITIES);
+  const [getHotels, { data: hotelSuggestions }] = useLazyQuery(SEARCH_HOTELS);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -43,20 +45,22 @@ function SearchHotels() {
   const handleInputChange = (e) => {
     const value = e.target.value;
     setKeyword(value);
-    if (value.length >= 2) {
+    if (value.length >= 1) {
       getCities({ variables: { keyword: value } });
+      getHotels({ variables: { keyword: value } });
       setShowSuggestions(true);
     } else {
       setShowSuggestions(false);
     }
   };
 
-  const handleCityClick = (cityName) => {
-    setKeyword(cityName);
+  const handleSuggestionClick = (value) => {
+    setKeyword(value);
     setShowSuggestions(false);
   };
 
-  const suggestions = cityData?.searchCities || [];
+  const citySuggestions = cityData?.searchCities || [];
+  const hotelSuggestionsList = hotelSuggestions?.searchHotels || [];
 
   return (
     <div style={{ padding: '2rem', fontFamily: 'Arial, sans-serif' }}>
@@ -73,7 +77,7 @@ function SearchHotels() {
           Search
         </button>
 
-        {showSuggestions && suggestions.length > 0 && (
+        {showSuggestions && (citySuggestions.length > 0 || hotelSuggestionsList.length > 0) && (
           <ul style={{
             position: 'absolute',
             top: '2.5rem',
@@ -85,16 +89,25 @@ function SearchHotels() {
             padding: 0,
             margin: 0,
             zIndex: 10,
-            maxHeight: '150px',
+            maxHeight: '200px',
             overflowY: 'auto'
           }}>
-            {suggestions.map(city => (
+            {citySuggestions.map(city => (
               <li
-                key={city.id}
-                onClick={() => handleCityClick(city.name)}
+                key={`city-${city.id}`}
+                onClick={() => handleSuggestionClick(city.name)}
                 style={{ padding: '0.5rem', cursor: 'pointer' }}
               >
-                {city.name}
+                 {city.name}
+              </li>
+            ))}
+            {hotelSuggestionsList.map(hotel => (
+              <li
+                key={`hotel-${hotel.id}`}
+                onClick={() => handleSuggestionClick(hotel.hotel_name)}
+                style={{ padding: '0.5rem', cursor: 'pointer' }}
+              >
+                 {hotel.hotel_name} ({hotel.city_name}, {hotel.country_name})
               </li>
             ))}
           </ul>
